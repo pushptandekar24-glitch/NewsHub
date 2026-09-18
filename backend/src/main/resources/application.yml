@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: newshub-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/newshub?createDatabaseIfNotExist=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # 'update' is fine while learning. Switch to 'validate' + Flyway before any real deployment.
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+    open-in-view: false   # avoids lazy-loading surprises in controllers
+
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+
+# ---------------------------------------------------------------------------
+# Application-specific configuration
+# ---------------------------------------------------------------------------
+app:
+  jwt:
+    # MUST be overridden in .env. Base64-ish random string, >= 32 chars for HS256.
+    secret: ${JWT_SECRET:change-me-this-is-only-a-local-development-fallback-secret}
+    expiration-ms: 86400000        # 24 hours
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+
+  news:
+    # Both providers are queried and merged when both keys are present.
+    # If only one key is set, that provider is used on its own.
+    provider: ${NEWS_PROVIDER:newsapi}
+    newsapi:
+      base-url: https://newsapi.org/v2
+      api-key: ${NEWS_API_KEY:}
+    gnews:
+      base-url: https://gnews.io/api/v4
+      api-key: ${GNEWS_API_KEY:}
+    # How many days back a feed may reach before articles are considered stale.
+    freshness-days: ${NEWS_FRESHNESS_DAYS:7}
+
+  # Reserved for a future AI summary provider. Nothing reads it yet; it exists
+  # so the key never ends up anywhere near the React bundle.
+  ai:
+    api-key: ${AI_API_KEY:}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+logging:
+  level:
+    com.apihub: DEBUG

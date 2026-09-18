@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global News Hub - Latest World News</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .news-card {
+            transition: all 0.3s ease;
+        }
+        
+        .news-card:hover {
+            transform: translateY(-8px);
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen">
+    
+    <!-- Header -->
+    <header class="bg-black/30 backdrop-blur-lg border-b border-white/10 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Global News Hub</h1>
+                        <p class="text-sm text-purple-300">Real-time news from around the world</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div id="last-updated" class="text-sm text-gray-300 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span id="update-time"></span>
+                    </div>
+                    <button onclick="refreshNews()" id="refresh-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all">
+                        <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category Tabs -->
+            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" id="category-tabs">
+                <button onclick="changeCategory('general')" class="category-btn px-4 py-2 rounded-lg whitespace-nowrap transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg" data-category="general">
+                    <span class="mr-2">🌍</span>Top Headlines
+                </button>
+                <button onclick="changeCategory('technology')" class="category-btn px-4 py-2 rounded-lg whitespace-nowrap transition-all bg-white/10 text-gray-300 hover:bg-white/20" data-category="technology">
+                    <span class="mr-2">💻</span>Technology
+                </button>
+                <button onclick="changeCategory('business')" class="category-btn px-4 py-2 rounded-lg whitespace-nowrap transition-all bg-white/10 text-gray-300 hover:bg-white/20" data-category="business">
+                    <span class="mr-2">💼</span>Business
+                </button>
+                <button onclick="changeCategory('sports')" class="category-btn px-4 py-2 rounded-lg whitespace-nowrap transition-all bg-white/10 text-gray-300 hover:bg-white/20" data-category="sports">
+                    <span class="mr-2">⚽</span>Sports
+                </button>
+                <button onclick="changeCategory('entertainment')" class="category-btn px-4 py-2 rounded-lg whitespace-nowrap transition-all bg-white/10 text-gray-300 hover:bg-white/20" data-category="entertainment">
+                    <span class="mr-2">🎬</span>Entertainment
+                </button>
+                <button onclick="changeCategory('health')" class="category-btn px-4 py-2 rounded-lg whitespace-nowrap transition-all bg-white/10 text-gray-300 hover:bg-white/20" data-category="health">
+                    <span class="mr-2">🏥</span>Health
+                </button>
+                <button onclick="changeCategory('science')" class="category-btn px-4 py-2 rounded-lg whitespace-nowrap transition-all bg-white/10 text-gray-300 hover:bg-white/20" data-category="science">
+                    <span class="mr-2">🔬</span>Science
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Error Message -->
+        <div id="error-message" class="hidden bg-red-500/20 border border-red-500 text-red-200 px-6 py-4 rounded-lg mb-6 flex items-center gap-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="font-semibold">Error loading news</p>
+                <p class="text-sm" id="error-text"></p>
+            </div>
+        </div>
+
+        <!-- Loading Skeleton -->
+        <div id="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="bg-white/10 backdrop-blur-lg rounded-xl overflow-hidden animate-pulse">
+                <div class="bg-white/20 h-48"></div>
+                <div class="p-6 space-y-3">
+                    <div class="h-4 bg-white/20 rounded w-3/4"></div>
+                    <div class="h-4 bg-white/20 rounded"></div>
+                    <div class="h-4 bg-white/20 rounded w-5/6"></div>
+                </div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-lg rounded-xl overflow-hidden animate-pulse">
+                <div class="bg-white/20 h-48"></div>
+                <div class="p-6 space-y-3">
+                    <div class="h-4 bg-white/20 rounded w-3/4"></div>
+                    <div class="h-4 bg-white/20 rounded"></div>
+                    <div class="h-4 bg-white/20 rounded w-5/6"></div>
+                </div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-lg rounded-xl overflow-hidden animate-pulse">
+                <div class="bg-white/20 h-48"></div>
+                <div class="p-6 space-y-3">
+                    <div class="h-4 bg-white/20 rounded w-3/4"></div>
+                    <div class="h-4 bg-white/20 rounded"></div>
+                    <div class="h-4 bg-white/20 rounded w-5/6"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- News Grid -->
+        <div id="news-grid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- News cards will be inserted here -->
+        </div>
+
+        <!-- No Results -->
+        <div id="no-results" class="hidden text-center py-20">
+            <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-gray-400 text-lg">No news articles found</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-black/30 backdrop-blur-lg border-t border-white/10 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-gray-400 text-sm">
+            <p>Powered by NewsAPI • Real-time global news coverage</p>
+            <p class="mt-2 text-xs">© 2024 Global News Hub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Configuration
+        const API_BASE = 'http://localhost:3001';
+        let currentCategory = 'general';
+        let newsData = [];
+
+        // Utility Functions
+        function getTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+            
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return `${Math.floor(seconds / 86400)}d ago`;
+        }
+
+        function formatTime(date) {
+            return new Date(date).toLocaleString();
+        }
+
+        // Fetch News
+        async function fetchNews(category = 'general') {
+            try {
+                showLoading();
+                hideError();
+                
+                const response = await fetch(`${API_BASE}/api/news?category=${category}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch news');
+                }
+                
+                const data = await response.json();
+                newsData = data.articles || [];
+                
+                displayNews(newsData);
+                updateLastUpdated();
+                
+            } catch (error) {
+                console.error('Error fetching news:', error);
+                showError(error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Display News
+        function displayNews(articles) {
+            const newsGrid = document.getElementById('news-grid');
+            const noResults = document.getElementById('no-results');
+            
+            if (articles.length === 0) {
+                newsGrid.classList.add('hidden');
+                noResults.classList.remove('hidden');
+                return;
+            }
+            
+            noResults.classList.add('hidden');
+            newsGrid.classList.remove('hidden');
+            
+            newsGrid.innerHTML = articles.map(article => `
+                <article class="news-card bg-white/10 backdrop-blur-lg rounded-xl overflow-hidden border border-white/10 hover:border-purple-500/50 fade-in">
+                    ${article.urlToImage ? `
+                        <div class="relative h-48 overflow-hidden">
+                            <img src="${article.urlToImage}" 
+                                 alt="${article.title}" 
+                                 class="w-full h-full object-cover"
+                                 onerror="this.parentElement.style.display='none'">
+                            <div class="absolute top-3 right-3 bg-black/70 backdrop-blur px-3 py-1 rounded-full text-xs text-white">
+                                ${getTimeAgo(article.publishedAt)}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="p-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-xs text-purple-400 font-semibold bg-purple-500/20 px-2 py-1 rounded">
+                                ${article.source?.name || 'Unknown Source'}
+                            </span>
+                        </div>
+                        
+                        <h3 class="text-lg font-bold text-white mb-2 line-clamp-2">
+                            ${article.title}
+                        </h3>
+                        
+                        <p class="text-gray-300 text-sm mb-4 line-clamp-3">
+                            ${article.description || 'No description available'}
+                        </p>
+                        
+                        ${article.author ? `
+                            <p class="text-xs text-gray-400 mb-3">By ${article.author}</p>
+                        ` : ''}
+                        
+                        <a href="${article.url}" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm font-semibold transition-colors">
+                            Read Full Article
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </a>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        // Category Change
+        function changeCategory(category) {
+            currentCategory = category;
+            
+            // Update button styles
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                if (btn.dataset.category === category) {
+                    btn.className = 'category-btn px-4 py-2 rounded-lg whitespace-nowrap transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg';
+                } else {
+                    btn.className = 'category-btn px-4 py-2 rounded-lg whitespace-nowrap transition-all bg-white/10 text-gray-300 hover:bg-white/20';
+                }
+            });
+            
+            fetchNews(category);
+        }
+
+        // Refresh News
+        function refreshNews() {
+            const refreshIcon = document.getElementById('refresh-icon');
+            refreshIcon.classList.add('spinning');
+            
+            fetchNews(currentCategory).finally(() => {
+                setTimeout(() => {
+                    refreshIcon.classList.remove('spinning');
+                }, 1000);
+            });
+        }
+
+        // UI State Management
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('news-grid').classList.add('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('error-message').classList.add('hidden');
+        }
+
+        function updateLastUpdated() {
+            const updateTime = document.getElementById('update-time');
+            updateTime.textContent = `Updated: ${formatTime(new Date())}`;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchNews('general');
+        });
+    </script>
+</body>
+</html>

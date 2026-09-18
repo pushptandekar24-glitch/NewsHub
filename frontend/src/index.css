@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   NewsHub design system
+
+   Light-first. Depth comes from layered shadows and 1px borders, not from
+   heavy gradients. 3D is applied sparingly: a few degrees of tilt on hover,
+   driven by transform only so it stays on the GPU compositor.
+   ========================================================================== */
+
+@layer base {
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply bg-surface-base text-ink-900 font-sans antialiased;
+    background-image:
+      radial-gradient(60% 50% at 12% 0%, rgba(99, 102, 241, .07) 0%, transparent 60%),
+      radial-gradient(50% 45% at 92% 8%, rgba(139, 92, 246, .06) 0%, transparent 60%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    @apply bg-night-base text-slate-100;
+    background-image:
+      radial-gradient(60% 50% at 12% 0%, rgba(99, 102, 241, .14) 0%, transparent 60%),
+      radial-gradient(50% 45% at 92% 8%, rgba(139, 92, 246, .10) 0%, transparent 60%);
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-edge-strong rounded-full; }
+  .dark ::-webkit-scrollbar-thumb { @apply bg-night-edge; }
+
+  /* Respect users who don't want motion — 3D tilt is the first thing to go. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      transition-duration: .01ms !important;
+    }
+  }
+}
+
+@layer components {
+
+  /* ---------------------------------------------------------- surfaces --- */
+  .panel {
+    @apply rounded-2xl border border-edge bg-surface-raised shadow-surface
+           dark:border-night-edge dark:bg-night-raised;
+  }
+
+  /* Glassmorphism, used only for elements that float OVER content:
+     the header, the category bar, image overlays. */
+  .glass {
+    @apply border border-white/60 bg-white/70 backdrop-blur-xl backdrop-saturate-150
+           dark:border-white/10 dark:bg-night-raised/70;
+  }
+
+  /* --------------------------------------------------------- 3D cards --- */
+  /* The parent establishes perspective; the child does the transform. This is
+     what makes the tilt read as depth rather than a skew. */
+  .card-3d-wrap { perspective: 1200px; }
+
+  .card-3d {
+    @apply panel relative overflow-hidden;
+    transform-style: preserve-3d;
+    transition: transform .35s cubic-bezier(.22, 1, .36, 1),
+                box-shadow .35s cubic-bezier(.22, 1, .36, 1),
+                border-color .35s ease;
+    will-change: transform;
+  }
+
+  .card-3d:hover {
+    /* Deliberately restrained: ~1.5deg. More than that looks like a toy. */
+    transform: translateY(-6px) rotateX(1.5deg) scale(1.012);
+    @apply shadow-float border-brand-400/50;
+  }
+
+  .card-3d:hover .card-media img { transform: scale(1.07); }
+  .card-3d:hover .card-sheen { opacity: 1; }
+
+  /* A single soft highlight sweeping the top edge — reads as a glass surface
+     catching light, and costs one opacity transition. */
+  .card-sheen {
+    @apply pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500;
+    background: linear-gradient(120deg, rgba(255,255,255,.55) 0%, transparent 38%);
+  }
+  .dark .card-sheen { background: linear-gradient(120deg, rgba(255,255,255,.08) 0%, transparent 38%); }
+
+  .card-media { @apply relative overflow-hidden bg-surface-sunken dark:bg-night-sunken; }
+  .card-media img { transition: transform .5s cubic-bezier(.22, 1, .36, 1); }
+
+  /* ---------------------------------------------------------- buttons --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm
+           font-medium transition-all duration-200 disabled:cursor-not-allowed
+           disabled:opacity-50 focus:outline-none focus-visible:ring-2
+           focus-visible:ring-brand-500/50 focus-visible:ring-offset-2;
+  }
+  .btn-primary {
+    @apply btn bg-brand-gradient text-white shadow-lift
+           hover:-translate-y-0.5 hover:shadow-glow active:translate-y-0;
+  }
+  .btn-ghost {
+    @apply btn border border-edge bg-surface-raised text-ink-600 shadow-surface
+           hover:-translate-y-0.5 hover:border-edge-strong hover:text-ink-900
+           dark:border-night-edge dark:bg-night-raised dark:text-slate-300 dark:hover:text-white;
+  }
+  .btn-quiet {
+    @apply btn text-ink-500 hover:bg-surface-sunken hover:text-ink-900
+           dark:hover:bg-night-sunken dark:hover:text-white;
+  }
+
+  /* ------------------------------------------------------------ input --- */
+  .input {
+    @apply w-full rounded-xl border border-edge bg-surface-raised px-3.5 py-2.5 text-sm
+           text-ink-900 shadow-surface transition-all placeholder:text-ink-400
+           focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10
+           dark:border-night-edge dark:bg-night-raised dark:text-slate-100;
+  }
+
+  /* ------------------------------------------------------------ chips --- */
+  .chip {
+    @apply inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full
+           border border-edge bg-surface-raised px-3.5 py-1.5 text-sm font-medium
+           text-ink-600 shadow-surface transition-all duration-200
+           hover:-translate-y-0.5 hover:border-brand-400 hover:text-brand-600
+           dark:border-night-edge dark:bg-night-raised dark:text-slate-300;
+  }
+  .chip-active {
+    @apply border-transparent bg-brand-gradient text-white shadow-glow
+           hover:text-white dark:border-transparent;
+  }
+
+  /* ------------------------------------------------------------ badge --- */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1
+           text-[11px] font-semibold uppercase tracking-wide;
+  }
+  .badge-category { @apply badge bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400; }
+  .badge-live     { @apply badge bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400; }
+  .badge-fresh    { @apply badge bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400; }
+  .badge-neutral  { @apply badge bg-surface-sunken text-ink-500 dark:bg-night-sunken dark:text-slate-400; }
+
+  /* -------------------------------------------------------- skeletons --- */
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-surface-sunken dark:bg-night-sunken;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full bg-shimmer animate-shimmer;
+  }
+  .dark .skeleton::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.06) 50%, transparent 100%);
+  }
+
+  /* ---------------------------------------------------------- helpers --- */
+  .section-title {
+    @apply text-xs font-semibold uppercase tracking-[.14em] text-ink-500 dark:text-slate-400;
+  }
+  .gradient-text {
+    @apply bg-brand-gradient bg-clip-text text-transparent;
+  }
+  .scroll-x {
+    @apply flex gap-2 overflow-x-auto pb-2;
+    scrollbar-width: thin;
+    -ms-overflow-style: none;
+  }
+  .scroll-x::-webkit-scrollbar { height: 4px; }
+
+  .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .line-clamp-3 { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+}

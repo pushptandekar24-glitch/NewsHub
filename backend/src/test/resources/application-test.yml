@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:newshub;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+app:
+  jwt:
+    secret: test-secret-key-that-is-definitely-long-enough-for-hs256
+    expiration-ms: 3600000
+  cors:
+    allowed-origins: http://localhost:5173
+  news:
+    provider: newsapi
+    newsapi:
+      base-url: https://newsapi.org/v2
+      api-key: test-key
+    gnews:
+      base-url: https://gnews.io/api/v4
+      api-key: test-key
+    freshness-days: 7
