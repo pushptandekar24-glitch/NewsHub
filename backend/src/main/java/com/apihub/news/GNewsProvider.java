@@ -20,9 +20,14 @@ import org.springframework.web.util.UriComponentsBuilder;
  * rather than `urlToImage`, uses `max` instead of `pageSize`, `lang` instead of
  * `language`, and `sortby` (lowercase b) instead of `sortBy`.
  *
- * Its /search endpoint accepts BOTH `country` and a boolean query, which
- * NewsAPI's /everything does not — that is why "Cricket + India" leans on
- * GNews for the country-scoped half of the result set.
+ * Its /search and /top-headlines endpoints both accept a genuine `country`
+ * parameter directly (GNews documents support for 71 countries), which is
+ * sent through unchanged here — no query-string workaround needed on this
+ * side. NewsApiOrgProvider, by contrast, has no native country parameter on
+ * the endpoint it actually uses (/everything) and has to fold the country
+ * into its query text instead; see CountryQueryRegistry for why. Together the
+ * two providers give every supported country real coverage from at least one
+ * source, and usually both.
  *
  * SIGNUP: https://gnews.io/register   ENV VAR: GNEWS_API_KEY
  */

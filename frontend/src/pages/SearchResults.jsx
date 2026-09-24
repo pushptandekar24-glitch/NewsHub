@@ -94,7 +94,7 @@ export default function SearchResults() {
         </label>
       </div>
 
-      {feed && <WarningBanner warnings={feed.warnings} />}
+      {feed && <WarningBanner message={feed.message} />}
 
       {loading && <SkeletonGrid count={6} />}
       {!loading && error && <ErrorState message={error} onRetry={load} />}

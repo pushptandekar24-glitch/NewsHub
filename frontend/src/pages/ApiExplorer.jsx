@@ -4,24 +4,44 @@ import api from '../services/api'
 import { categoryService } from '../services/categoryService'
 
 /**
- * API Explorer for this platform's own endpoints.
+ * API Explorer for this platform's own endpoints — a developer tool, kept
+ * deliberately separate from the main news-reading navigation (see Layout).
  *
- * Response time is measured client-side around the request, so it includes
- * network latency — which is the number a developer actually cares about when
- * testing an endpoint from a browser.
+ * Every request here is real: it calls this same backend through the same
+ * axios instance the rest of the app uses, so status codes, timing and JSON
+ * bodies are exactly what the API actually returned, never mocked.
+ *
+ * `pathParams` are substituted into the URL path (e.g. {slug} in
+ * /api/news/category/{slug}); `params` are sent as query parameters. This
+ * distinction is what makes /api/news/category/{slug} and
+ * /api/news/country/{code} testable here, which the previous version could not do.
  */
 const ENDPOINTS = [
-  { label: 'List categories', method: 'GET', path: '/api/categories', params: [] },
-  { label: 'List countries', method: 'GET', path: '/api/countries', params: [] },
-  { label: 'News feed', method: 'GET', path: '/api/news', params: ['category', 'country', 'page', 'pageSize'] },
-  { label: 'Search news', method: 'GET', path: '/api/news/search', params: ['q', 'country', 'sort', 'pageSize'] },
-  { label: 'Trending news', method: 'GET', path: '/api/news/trending', params: ['limit'] },
-  { label: 'My profile', method: 'GET', path: '/api/users/me', params: [] },
+  { label: 'List categories', method: 'GET', path: '/api/categories', pathParams: [], params: [] },
+  { label: 'List countries', method: 'GET', path: '/api/countries', pathParams: [], params: [] },
+  { label: 'News feed', method: 'GET', path: '/api/news',
+    pathParams: [], params: ['category', 'country', 'page', 'pageSize'] },
+  { label: 'Search news', method: 'GET', path: '/api/news/search',
+    pathParams: [], params: ['q', 'country', 'sort', 'pageSize'] },
+  { label: 'News by category', method: 'GET', path: '/api/news/category/{slug}',
+    pathParams: ['slug'], params: ['country', 'page', 'pageSize'] },
+  { label: 'News by country', method: 'GET', path: '/api/news/country/{code}',
+    pathParams: ['code'], params: ['category', 'page', 'pageSize'] },
+  { label: 'Trending news', method: 'GET', path: '/api/news/trending', pathParams: [], params: ['limit'] },
+  { label: 'My profile', method: 'GET', path: '/api/users/me', pathParams: [], params: [] },
 ]
 
 const METHOD_TONE = {
   GET: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
   POST: 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400',
+}
+
+/** Replaces {param} placeholders in a path with values, e.g. {slug} -> "cricket". */
+function resolvePath(path, pathParams, values) {
+  return pathParams.reduce(
+    (acc, param) => acc.replace(`{${param}}`, encodeURIComponent(values[param] || `{${param}}`)),
+    path
+  )
 }
 
 export default function ApiExplorer() {
@@ -30,26 +50,32 @@ export default function ApiExplorer() {
   const [result, setResult] = useState(null)
   const [busy, setBusy] = useState(false)
   const [categories, setCategories] = useState([])
+  const [countries, setCountries] = useState([])
 
   useEffect(() => {
     categoryService.list().then(setCategories).catch(() => {})
+    categoryService.countries().then(setCountries).catch(() => {})
   }, [])
+
+  const resolvedPath = resolvePath(selected.path, selected.pathParams, values)
+  const missingPathParams = selected.pathParams.some((param) => !values[param])
 
   const requestUrl = (() => {
     const query = new URLSearchParams(
       Object.entries(values).filter(([k, v]) => selected.params.includes(k) && v !== '')
     ).toString()
-    return selected.path + (query ? `?${query}` : '')
+    return resolvedPath + (query ? `?${query}` : '')
   })()
 
   async function send() {
+    if (missingPathParams) return
     setBusy(true)
     const started = performance.now()
     try {
       const params = Object.fromEntries(
         Object.entries(values).filter(([k, v]) => selected.params.includes(k) && v !== '')
       )
-      const response = await api.get(selected.path, { params })
+      const response = await api.get(resolvedPath, { params })
       setResult({
         status: response.status,
         statusText: response.statusText || 'OK',
@@ -77,9 +103,13 @@ export default function ApiExplorer() {
           <Terminal className="h-6 w-6 text-brand-500" />
         </span>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">API Explorer</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">API Explorer</h1>
+            <span className="badge-neutral">Developer tool</span>
+          </div>
           <p className="mt-1.5 text-sm text-ink-500 dark:text-slate-400">
             Send live requests to the NewsHub backend and inspect status, timing and JSON.
+            This is separate from the news-reading experience — nothing here affects your feed.
           </p>
         </div>
       </header>
@@ -112,9 +142,47 @@ export default function ApiExplorer() {
             <code className="truncate font-mono text-xs text-ink-600 dark:text-slate-300">{requestUrl}</code>
           </div>
 
+          {selected.pathParams.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Path parameters</p>
+              {selected.pathParams.map((param) => (
+                <div key={param}>
+                  <label className="mb-1 block font-mono text-[11px] text-ink-400">{`{${param}}`} (required)</label>
+                  {param === 'slug' ? (
+                    <select
+                      className="input"
+                      value={values[param] || ''}
+                      onChange={(e) => setValues({ ...values, [param]: e.target.value })}
+                    >
+                      <option value="">Select a category…</option>
+                      {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                    </select>
+                  ) : param === 'code' ? (
+                    <select
+                      className="input"
+                      value={values[param] || ''}
+                      onChange={(e) => setValues({ ...values, [param]: e.target.value })}
+                    >
+                      <option value="">Select a country…</option>
+                      {countries.filter((c) => c.code !== 'world').map((c) => (
+                        <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className="input"
+                      value={values[param] || ''}
+                      onChange={(e) => setValues({ ...values, [param]: e.target.value })}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {selected.params.length > 0 && (
             <div className="space-y-3">
-              <p className="text-sm font-medium">Parameters</p>
+              <p className="text-sm font-medium">Query parameters</p>
               {selected.params.map((param) => (
                 <div key={param}>
                   <label className="mb-1 block font-mono text-[11px] text-ink-400">{param}</label>
@@ -126,6 +194,17 @@ export default function ApiExplorer() {
                     >
                       <option value="">(none)</option>
                       {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                    </select>
+                  ) : param === 'country' ? (
+                    <select
+                      className="input"
+                      value={values[param] || ''}
+                      onChange={(e) => setValues({ ...values, [param]: e.target.value })}
+                    >
+                      <option value="">(none)</option>
+                      {countries.filter((c) => c.code !== 'world').map((c) => (
+                        <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
+                      ))}
                     </select>
                   ) : param === 'sort' ? (
                     <select
@@ -141,7 +220,6 @@ export default function ApiExplorer() {
                       className="input"
                       placeholder={
                         param === 'q' ? 'artificial intelligence'
-                        : param === 'country' ? 'in'
                         : param === 'pageSize' ? '20'
                         : ''
                       }
@@ -154,9 +232,14 @@ export default function ApiExplorer() {
             </div>
           )}
 
-          <button onClick={send} disabled={busy} className="btn-primary w-full">
+          <button onClick={send} disabled={busy || missingPathParams} className="btn-primary w-full">
             <Play className="h-4 w-4" /> {busy ? 'Sending…' : 'Send request'}
           </button>
+          {missingPathParams && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              Fill in every path parameter above to send this request.
+            </p>
+          )}
         </div>
 
         {/* ----------------------------------------------------- response */}

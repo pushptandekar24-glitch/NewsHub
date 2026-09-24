@@ -16,13 +16,27 @@ import org.springframework.web.util.UriComponentsBuilder;
 /**
  * NewsAPI.org adapter.
  *
- * ENDPOINT CHOICE (this is what fixes stale results):
- *   - /everything  is used whenever we have a text query. It is the ONLY
- *     NewsAPI endpoint that supports sortBy=publishedAt and a `from` date,
- *     so it is the only one that can guarantee newest-first results.
- *   - /top-headlines is used only for plain country browsing, because it is
- *     the only endpoint that accepts a `country` parameter. Its results are
- *     already recency-ordered by NewsAPI.
+ * ENDPOINT CHOICE — this is also the fix for country filtering silently doing
+ * nothing on this provider:
+ *
+ *   - /everything  is used whenever we have a text query OR a country OTHER
+ *     THAN "us". It is the only endpoint that supports sortBy=publishedAt and
+ *     a `from` date, AND — this is the important part — NewsAPI's current
+ *     documentation for /top-headlines lists its `country` parameter as
+ *     supporting only "us"; every other code is no longer reliable there.
+ *     /everything itself has NO country parameter at all, so when a country is
+ *     requested we fold it into the `q` string as a boolean AND via
+ *     CountryQueryRegistry + QueryComposer (see those classes for why).
+ *
+ *   - /top-headlines is used ONLY for the plain worldwide/US browse case: no
+ *     search text and no country (or country == "us"). That is the one
+ *     situation where NewsAPI's own country param is still documented to work,
+ *     and top-headlines' results are already recency-ordered.
+ *
+ * Previously, /everything never looked at q.country() at all, so selecting any
+ * country while a category or search term was active (i.e. almost always) had
+ * no effect whatsoever on this provider — GNews was silently doing all the
+ * country-relevance work alone.
  *
  * FREE TIER LIMITS (verified Sept 2026): 100 requests/day, ~24h article delay,
  * development/localhost use only.
@@ -35,14 +49,20 @@ public class NewsApiOrgProvider implements NewsProvider {
     private static final Set<String> NATIVE_CATEGORIES = Set.of(
             "business", "entertainment", "general", "health", "science", "sports", "technology");
 
+    /** The only country code NewsAPI's /top-headlines still documents support for. */
+    private static final String TOP_HEADLINES_SUPPORTED_COUNTRY = "us";
+
     private final RestClient restClient;
     private final String apiKey;
+    private final CountryQueryRegistry countryQueryRegistry;
 
     public NewsApiOrgProvider(RestClient.Builder builder,
                               @Value("${app.news.newsapi.base-url}") String baseUrl,
-                              @Value("${app.news.newsapi.api-key:}") String apiKey) {
+                              @Value("${app.news.newsapi.api-key:}") String apiKey,
+                              CountryQueryRegistry countryQueryRegistry) {
         this.restClient = builder.baseUrl(baseUrl).build();
         this.apiKey = apiKey;
+        this.countryQueryRegistry = countryQueryRegistry;
     }
 
     @Override public String name() { return "newsapi"; }
@@ -56,8 +76,13 @@ public class NewsApiOrgProvider implements NewsProvider {
 
     @Override
     public ProviderResult fetchTopHeadlines(NewsQuery q) {
-        // With a query, /everything gives strictly newer and more relevant results.
-        if (q.effectiveQuery() != null && !q.effectiveQuery().isBlank()) {
+        boolean hasQuery = q.effectiveQuery() != null && !q.effectiveQuery().isBlank();
+        boolean countryNeedsEverything = q.country() != null
+                && !TOP_HEADLINES_SUPPORTED_COUNTRY.equals(q.country());
+
+        // Any of these push us to /everything, where country is applied as a
+        // query boost instead of a native parameter.
+        if (hasQuery || countryNeedsEverything) {
             return search(q);
         }
 
@@ -72,7 +97,11 @@ public class NewsApiOrgProvider implements NewsProvider {
 
     @Override
     public ProviderResult search(NewsQuery q) {
-        String query = q.effectiveQuery();
+        String countryBoost = q.country() == null
+                ? null
+                : countryQueryRegistry.queryBoost(q.country()).orElse(null);
+
+        String query = QueryComposer.withCountryBoost(q.effectiveQuery(), countryBoost);
         if (query == null || query.isBlank()) {
             return ProviderResult.success(List.of(), 0, name());
         }

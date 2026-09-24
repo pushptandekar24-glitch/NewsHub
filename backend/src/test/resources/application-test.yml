@@ -18,7 +18,6 @@ app:
   cors:
     allowed-origins: http://localhost:5173
   news:
-    provider: newsapi
     newsapi:
       base-url: https://newsapi.org/v2
       api-key: test-key

@@ -27,6 +27,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class NewsService {
+
+    private static final Logger log = LoggerFactory.getLogger(NewsService.class);
 
     private static final int RELATED_LIMIT = 4;
     private static final int TRENDING_WINDOW_HOURS = 48;
@@ -100,7 +104,7 @@ public class NewsService {
         failIfEverythingFailed(feed);
 
         List<NewsArticle> stored = persistAll(feed.articles(), category, query.country(), query.language());
-        return toPage(stored, page, pageSize, feed.totalAvailable(), feed.errors());
+        return toPage(stored, page, pageSize, feed);
     }
 
     /** GET /api/news/search?q=... */
@@ -117,7 +121,7 @@ public class NewsService {
         failIfEverythingFailed(feed);
 
         List<NewsArticle> stored = persistAll(feed.articles(), category, query.country(), query.language());
-        return toPage(stored, page, pageSize, feed.totalAvailable(), feed.errors());
+        return toPage(stored, page, pageSize, feed);
     }
 
     /**
@@ -136,9 +140,17 @@ public class NewsService {
 
         if (candidates.size() < limit * 2) {
             // Prime the pool, then re-read. Warming the cache this way means the
-            // first visitor after a restart still gets a real ranking.
-            getFeed(null, null, "en", 0, 40, null, null);
-            candidates = articleRepository.findRecentSince(since, PageRequest.of(0, TRENDING_CANDIDATE_POOL));
+            // first visitor after a restart still gets a real ranking. If every
+            // provider happens to be down right now, fall back to whatever local
+            // candidates already exist rather than failing the whole page —
+            // trending has its own data source (past clicks) that a transient
+            // provider outage should not take down.
+            try {
+                getFeed(null, null, "en", 0, 40, null, null);
+                candidates = articleRepository.findRecentSince(since, PageRequest.of(0, TRENDING_CANDIDATE_POOL));
+            } catch (ExternalApiException ex) {
+                log.warn("Could not prime trending pool (all providers failed): {}", ex.getMessage());
+            }
         }
 
         List<TrendingService.ScoredArticle> ranked = trendingService.rank(candidates, limit);
@@ -183,7 +195,7 @@ public class NewsService {
         failIfEverythingFailed(feed);
 
         List<NewsArticle> stored = persistAll(feed.articles(), null, query.country(), query.language());
-        return toPage(stored, page, pageSize, feed.totalAvailable(), feed.errors());
+        return toPage(stored, page, pageSize, feed);
     }
 
     // --------------------------------------------------------------- detail
@@ -254,10 +266,10 @@ public class NewsService {
 
     private void failIfEverythingFailed(AggregatedFeed feed) {
         if (feed.allFailed()) {
-            String combined = feed.errors().isEmpty()
-                    ? "Unable to load news right now"
-                    : String.join(" · ", feed.errors());
-            throw new ExternalApiException(combined, 502);
+            // Raw, provider-specific detail goes to the log for debugging.
+            // The exception carries only the friendly sentence a normal user sees.
+            log.warn("All news providers failed: {}", String.join(" | ", feed.errors()));
+            throw new ExternalApiException(feed.friendlyMessage(), 502);
         }
     }
 
@@ -304,7 +316,7 @@ public class NewsService {
      * rather than carried across pages, which would risk showing duplicates.
      */
     private PageResponse<ArticleResponse> toPage(List<NewsArticle> articles, int page, int pageSize,
-                                                 long totalAvailable, List<String> warnings) {
+                                                 AggregatedFeed feed) {
         Set<Long> savedIds = savedArticleIdsForCurrentUser();
 
         List<ArticleResponse> content = articles.stream()
@@ -312,9 +324,18 @@ public class NewsService {
                 .map(a -> ArticleResponse.from(a, savedIds.contains(a.getId())))
                 .toList();
 
-        long cappedTotal = Math.min(totalAvailable, (long) pageSize * MAX_PAGES);
+        long cappedTotal = Math.min(feed.totalAvailable(), (long) pageSize * MAX_PAGES);
+
+        // Status/message come from the feed, not re-derived from content here,
+        // because "no results after filtering" and "no results because a
+        // provider failed" are different states even when both lists are empty.
+        String status = content.isEmpty() && !feed.articles().isEmpty()
+                ? "NO_RESULTS"   // everything on this page got cut by pageSize/paging, not a real empty result
+                : feed.status();
+
         return PageResponse.of(content, page, pageSize,
-                Math.max(cappedTotal, (long) page * pageSize + content.size()), warnings);
+                Math.max(cappedTotal, (long) page * pageSize + content.size()),
+                status, feed.friendlyMessage(), feed.errors());
     }
 
     /** Lets every card render its bookmark state without an N+1 query. */
