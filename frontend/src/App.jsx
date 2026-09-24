@@ -8,6 +8,7 @@ import ArticleDetail from './pages/ArticleDetail'
 import Categories from './pages/Categories'
 import Countries from './pages/Countries'
 import Dashboard from './pages/Dashboard'
+import Explore from './pages/Explore'
 import FeedPage from './pages/FeedPage'
 import Login from './pages/Login'
 import NotFound from './pages/NotFound'
@@ -26,7 +27,10 @@ export default function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
 
-            <Route path="/explore" element={<FeedPage title="Explore" />} />
+            {/* Explore is the discovery hub (search + compact browsers); the full
+                filterable "everything" feed lives at /browse. */}
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/browse" element={<FeedPage title="Latest News" />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/categories/:slug" element={<FeedPage lockCategory />} />
             <Route path="/countries" element={<Countries />} />

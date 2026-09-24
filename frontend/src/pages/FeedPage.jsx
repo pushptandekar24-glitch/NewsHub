@@ -10,13 +10,14 @@ import { categoryService } from '../services/categoryService'
 import { newsService, DEFAULT_PAGE_SIZE } from '../services/newsService'
 
 /**
- * One page powers /explore, /categories/:slug and /countries/:code.
+ * One page powers /browse (the full unfiltered "everything" feed),
+ * /categories/:slug and /countries/:code.
  *
  * FILTER STATE LIVES IN THE URL. Every change goes through setSearchParams or
  * navigate(), which means refresh, back/forward and link sharing all work, and
  * there is exactly one source of truth for what the backend should be asked.
  *
- *   /explore?category=cricket&country=in&page=0
+ *   /browse?category=cricket&country=in&page=0
  */
 export default function FeedPage({ title, lockCategory = false, lockCountry = false }) {
   const params = useParams()
@@ -57,15 +58,17 @@ export default function FeedPage({ title, lockCategory = false, lockCountry = fa
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [load])
 
-  /** Category changes navigate to the canonical /categories/:slug URL. */
+  /** Category changes navigate to the canonical /categories/:slug URL.
+   *  Clearing the category returns to /browse — the unfiltered "everything"
+   *  feed — not /explore, which is now the discovery hub rather than a feed. */
   function changeCategory(slug) {
     const query = country ? `?country=${country}&page=0` : '?page=0'
-    navigate(slug ? `/categories/${slug}${query}` : `/explore${query}`)
+    navigate(slug ? `/categories/${slug}${query}` : `/browse${query}`)
   }
 
   function changeCountry(code) {
     if (lockCountry) {
-      navigate(code ? `/countries/${code}?page=0` : '/explore?page=0')
+      navigate(code ? `/countries/${code}?page=0` : '/browse?page=0')
       return
     }
     updateParam('country', code)
@@ -92,7 +95,7 @@ export default function FeedPage({ title, lockCategory = false, lockCountry = fa
     ? `${activeCategory.icon} ${activeCategory.name}`
     : activeCountry
       ? `${activeCountry.flag} ${activeCountry.name}`
-      : title || 'Explore'
+      : title || 'Latest News'
 
   const subheading = [
     activeCategory ? activeCategory.name : 'All topics',
@@ -115,12 +118,11 @@ export default function FeedPage({ title, lockCategory = false, lockCountry = fa
         </p>
       </header>
 
-      {!lockCategory && <CategoryNav value={category} onChange={changeCategory} />}
-      {lockCategory && <CategoryNav value={category} onChange={changeCategory} />}
+      <CategoryNav value={category} onChange={changeCategory} />
 
       <CountryFilter value={country} onChange={changeCountry} />
 
-      {feed && <WarningBanner warnings={feed.warnings} />}
+      {feed && <WarningBanner message={feed.message} />}
 
       {loading && <SkeletonGrid count={pageSize > 12 ? 9 : 6} />}
 

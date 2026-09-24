@@ -86,10 +86,13 @@ rather than at first login.
 is missing or invalid. Categories and countries will still load; only the feed
 needs the upstream key.
 
-**News endpoints return 429** — NewsAPI's free tier is 100 requests/day. The
-backend caches feeds for 5 minutes (`NEWS_CACHE_TTL`) to stretch that, but it
-is easy to exhaust while developing. Raise the TTL, or switch to GNews:
-set `NEWS_PROVIDER=gnews` and `GNEWS_API_KEY=...`.
+**News endpoints return 429** — a provider's daily quota is exhausted (NewsAPI's
+free tier is 100 requests/day). Set both `NEWS_API_KEY` and `GNEWS_API_KEY` so
+the other provider can serve results when one is rate-limited — the app
+already falls back automatically and shows "Some news sources are temporarily
+unavailable" rather than failing. Feeds are cached for 3 minutes and searches
+for 2 (see `CacheConfig`), which helps but won't save a truly exhausted quota
+until it resets.
 
 **Frontend loads but every request fails** — the backend isn't running. Start it
 first; the frontend fetches categories on first paint.

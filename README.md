@@ -54,9 +54,10 @@ Controller → NewsService → NewsFetcher (cache) → NewsProvider → NewsAPI 
             NewsArticleRepository   (local metadata, enables /article/:id)
 ```
 
-`NewsProvider` is an interface with two implementations. Changing
-`NEWS_PROVIDER` in `.env` swaps the whole upstream source without touching any
-other class.
+`NewsProvider` is an interface with two implementations. Both are queried and
+merged automatically whenever they're configured — see
+`NewsAggregationService`. There is no provider-selection switch; setting only
+one API key simply means only that provider is queried.
 
 ---
 
@@ -100,7 +101,6 @@ Copy `backend/.env.example` to `backend/.env` and fill in:
 |---|---|
 | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | MySQL connection |
 | `JWT_SECRET` | ≥32 chars. `openssl rand -base64 48` |
-| `NEWS_PROVIDER` | `newsapi` or `gnews` |
 | `NEWS_API_KEY` | newsapi.org key (dev/localhost only) |
 | `GNEWS_API_KEY` | gnews.io key (deployable) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | optional first admin account |

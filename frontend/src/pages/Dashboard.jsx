@@ -39,7 +39,9 @@ export default function Dashboard() {
         const [first, ...rest] = feedData.content
         setFeatured(first || null)
         setLatest(rest)
-        setWarnings(feedData.warnings || [])
+        // `message` is the single friendly sentence for a provider hiccup;
+        // `warnings` (raw per-provider detail) is for logs/dev tools, not this banner.
+        setWarnings(feedData.message ? [feedData.message] : [])
         setTrending(trendingData.content)
         setCategories(categoryData)
       })
@@ -55,7 +57,7 @@ export default function Dashboard() {
     <div className="space-y-12">
       <Hero name={isAuthenticated ? user.name.split(' ')[0] : null} />
 
-      <WarningBanner warnings={warnings} />
+      <WarningBanner message={warnings[0]} />
 
       {/* ------------------------------------------------------ trending */}
       {loading ? (
@@ -91,20 +93,26 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* ---------------------------------------------------- categories */}
+      {/* -------------------------------------------------- popular topics */}
+      {/* Deliberately compact — a teaser, not a duplicate of the Categories
+          page. Home answers "what's happening"; the full 25-category browser
+          lives one click away via Explore or Categories. */}
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="section-title">Explore categories</h2>
-          <Link to="/categories" className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">
-            View all {categories.length || 25}
+          <h2 className="section-title">Popular topics</h2>
+          <Link to="/explore" className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">
+            Explore everything
           </Link>
         </div>
         <div className="flex flex-wrap gap-2">
-          {categories.slice(0, 16).map((category) => (
+          {categories.slice(0, 8).map((category) => (
             <Link key={category.slug} to={`/categories/${category.slug}`} className="chip">
               <span aria-hidden="true">{category.icon}</span> {category.name}
             </Link>
           ))}
+          <Link to="/categories" className="chip !border-dashed">
+            View all {categories.length || 25} →
+          </Link>
         </div>
       </section>
 
@@ -112,7 +120,7 @@ export default function Dashboard() {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="section-title">Latest stories</h2>
-          <Link to="/explore" className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">
+          <Link to="/browse" className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">
             Browse all
           </Link>
         </div>

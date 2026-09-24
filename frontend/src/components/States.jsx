@@ -108,17 +108,22 @@ export function EmptyState({
   )
 }
 
-/** Non-fatal banner: one provider is down, the other answered. */
-export function WarningBanner({ warnings }) {
-  if (!warnings || warnings.length === 0) return null
+/**
+ * Non-fatal banner: one provider is down, the other answered.
+ *
+ * Takes the backend's single friendly `message` (from PageResponse.message /
+ * AggregatedFeed.friendlyMessage) rather than joining raw per-provider errors —
+ * a normal reader does not need to know "GNews" by name. The raw detail is
+ * still in the response's `warnings` array for anyone who wants it (e.g. via
+ * the API Explorer) and in the backend logs.
+ */
+export function WarningBanner({ message }) {
+  if (!message) return null
   return (
     <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3
                     text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-      <div>
-        <p className="font-medium">Showing partial results</p>
-        <p className="mt-0.5 opacity-90">{warnings.join(' · ')}</p>
-      </div>
+      <p className="font-medium">{message}</p>
     </div>
   )
 }

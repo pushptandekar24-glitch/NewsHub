@@ -40,9 +40,11 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
   news:
-    # Both providers are queried and merged when both keys are present.
-    # If only one key is set, that provider is used on its own.
-    provider: ${NEWS_PROVIDER:newsapi}
+    # Every configured provider (any of NEWS_API_KEY / GNEWS_API_KEY) is queried
+    # and merged automatically — there is no provider-selection switch. If only
+    # one key is set, that provider is used on its own; if a configured
+    # provider fails at request time (quota, outage), the other's results are
+    # still returned. See NewsAggregationService.
     newsapi:
       base-url: https://newsapi.org/v2
       api-key: ${NEWS_API_KEY:}

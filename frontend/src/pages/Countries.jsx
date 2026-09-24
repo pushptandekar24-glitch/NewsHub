@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import CountryGrid from '../components/CountryGrid'
 import { ErrorState } from '../components/States'
 import { categoryService } from '../services/categoryService'
 
@@ -23,22 +23,7 @@ export default function Countries() {
         </p>
       </header>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {countries.map((country) => (
-          <div key={country.code} className="card-3d-wrap">
-            <Link
-              to={country.code === 'world' ? '/explore' : `/countries/${country.code}`}
-              className="card-3d group flex items-center gap-3 p-5"
-            >
-              <span className="card-sheen" />
-              <span className="text-2xl transition-transform duration-300 group-hover:scale-110">
-                {country.flag}
-              </span>
-              <span className="text-sm font-semibold leading-tight">{country.name}</span>
-            </Link>
-          </div>
-        ))}
-      </div>
+      <CountryGrid countries={countries} />
     </div>
   )
 }

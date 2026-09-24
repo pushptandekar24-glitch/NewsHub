@@ -7,6 +7,10 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 
+// Primary reader navigation. API Explorer is intentionally NOT in this list —
+// it is a developer tool, not something a normal reader needs, and is shown
+// in its own de-emphasised section below (requirement: keep it available but
+// visually separate so it doesn't dominate the reading experience).
 const NAV = [
   { to: '/dashboard', label: 'Home', icon: Home },
   { to: '/explore', label: 'Explore', icon: Compass },
@@ -14,7 +18,6 @@ const NAV = [
   { to: '/countries', label: 'Countries', icon: Globe },
   { to: '/trending', label: 'Trending', icon: TrendingUp },
   { to: '/saved', label: 'Saved', icon: Bookmark, auth: true },
-  { to: '/api-explorer', label: 'API Explorer', icon: Terminal },
 ]
 
 function navClass({ isActive }) {
@@ -149,6 +152,27 @@ export default function Layout() {
               </NavLink>
             </>
           )}
+
+          {/* Developer tools — visually separated from the reading nav above:
+              smaller label, muted icon color, its own divider. Still one click
+              away, never removed, just not competing with Home/Explore/etc. */}
+          <div className="my-4 border-t border-edge dark:border-night-edge" />
+          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[.14em] text-ink-400">
+            Developer
+          </p>
+          <NavLink
+            to="/api-explorer"
+            onClick={() => setMobileOpen(false)}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                isActive
+                  ? 'bg-surface-sunken text-ink-900 dark:bg-night-sunken dark:text-white'
+                  : 'text-ink-400 hover:bg-surface-sunken hover:text-ink-700 dark:hover:bg-night-sunken dark:hover:text-slate-300'
+              }`
+            }
+          >
+            <Terminal className="h-3.5 w-3.5" /> API Explorer
+          </NavLink>
 
           <div className="mt-6 rounded-2xl border border-edge bg-surface-muted p-4
                           dark:border-night-edge dark:bg-night-sunken">
